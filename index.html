@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#145b43">
+<meta name="description" content="Aplikasi pencatatan kas Jemaat Mathen Luther Dabe">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>Kas Gereja | Jemaat Mathen Luther Dabe</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#18352b;background:#f3f7f4}
+*{box-sizing:border-box}body{margin:0}.wrap{max-width:1000px;margin:auto;padding:18px}
+header{background:linear-gradient(120deg,#104b38,#23805c);color:white;padding:24px;border-radius:18px;margin:8px 0 18px}
+h1{font-size:22px;margin:0 0 5px}.sub{opacity:.85;font-size:13px}.balance{font-size:30px;font-weight:750;margin-top:18px}
+nav{display:flex;gap:8px;overflow:auto;margin-bottom:16px}button,.tab{border:0;border-radius:10px;padding:11px 14px;font-weight:650;cursor:pointer}
+.tab{background:white;color:#24513e;white-space:nowrap}.tab.active,.primary{background:#176b50;color:white}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.card{background:white;border:1px solid #dce8e0;border-radius:14px;padding:16px;margin-bottom:12px}
+.kicker{font-size:12px;color:#668073}.value{font-size:20px;font-weight:750;margin-top:5px}.green{color:#198052}.red{color:#c34e4e}
+label{font-size:13px;font-weight:650;display:block;margin:10px 0 5px}input,select{width:100%;padding:11px;border:1px solid #cadbd0;border-radius:9px;background:white;font:inherit}
+form .primary{width:100%;margin-top:14px}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:10px 6px;border-bottom:1px solid #e4ece7}th{color:#6c8176}
+.muted{color:#6c8176;font-size:13px}.hidden{display:none!important}.actions button{padding:5px 8px;background:#edf4ef;margin:2px;font-size:12px}
+.notice{padding:10px;background:#e6f4eb;border-radius:9px;color:#176b50;margin:10px 0}
+footer{text-align:center;color:#7a8c82;font-size:12px;padding:18px}
+@media(max-width:560px){.wrap{padding:12px}.grid{gap:8px}.card{padding:12px}.value{font-size:17px}.balance{font-size:26px}}
+@media print{nav,form,.no-print,footer{display:none!important}body{background:white}.card{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+ <div class="sub">SISTEM INFORMASI KEUANGAN</div>
+ <h1>KAS GEREJA</h1><div class="sub">JEMAAT MATHEN LUTHER DABE</div>
+ <div class="sub" style="margin-top:17px">SALDO KAS SAAT INI</div><div class="balance" id="balance">Rp 0</div>
+ <div class="sub" id="connection">Memeriksa koneksi...</div>
+</header>
+<nav class="no-print">
+ <button class="tab active" data-page="dashboard">Dashboard</button>
+ <button class="tab" data-page="transactions">Transaksi</button>
+ <button class="tab" data-page="reports">Laporan</button>
+ <button class="tab" data-page="backup">Cadangan Data</button>
+</nav>
+<section id="dashboard">
+ <div class="grid">
+  <div class="card"><div class="kicker">Total pemasukan</div><div class="value green" id="income">Rp 0</div></div>
+  <div class="card"><div class="kicker">Total pengeluaran</div><div class="value red" id="expense">Rp 0</div></div>
+ </div>
+ <div class="card"><h3>Transaksi terbaru</h3><div id="recent" class="muted">Belum ada transaksi.</div></div>
+ <button class="primary no-print" onclick="showPage('transactions')">+ Catat transaksi</button>
+</section>
+<section id="transactions" class="hidden">
+ <div class="card">
+  <h3 id="formTitle">Tambah transaksi</h3>
+  <form id="txForm">
+   <input type="hidden" id="editId">
+   <div class="row"><div><label>Jenis</label><select id="type"><option value="in">Pemasukan</option><option value="out">Pengeluaran</option></select></div>
+   <div><label>Tanggal</label><input id="date" type="date" required></div></div>
+   <label>Kategori</label><select id="category"></select>
+   <label>Jumlah (Rupiah)</label><input id="amount" type="number" min="1" step="1" required placeholder="Contoh: 150000">
+   <label>Keterangan</label><input id="description" maxlength="160" required placeholder="Keterangan transaksi">
+   <button class="primary" type="submit">Simpan transaksi</button>
+   <button type="button" id="cancelEdit" class="hidden">Batal edit</button>
+  </form>
+ </div>
+ <div class="card"><h3>Daftar transaksi</h3><label>Filter bulan</label><input id="filterMonth" type="month"><div style="overflow-x:auto;margin-top:10px" id="list"></div></div>
+</section>
+<section id="reports" class="hidden">
+ <div class="card"><h3>Laporan keuangan</h3><label>Periode</label><input id="reportMonth" type="month">
+ <p>Total pemasukan: <b class="green" id="rIncome">Rp 0</b></p><p>Total pengeluaran: <b class="red" id="rExpense">Rp 0</b></p>
+ <h3>Selisih: <span id="net">Rp 0</span></h3><div id="reportList" style="overflow-x:auto"></div>
+ <button class="primary no-print" onclick="window.print()">Cetak / Simpan PDF</button>
+ <button class="no-print" id="csv">Unduh CSV (Excel)</button></div>
+</section>
+<section id="backup" class="hidden">
+ <div class="card"><h3>Cadangan dan pemulihan data</h3><p class="muted">Unduh cadangan secara rutin. Simpan file di tempat aman. Data pada versi ini disimpan pada browser/perangkat ini.</p>
+ <button class="primary" id="downloadBackup">Unduh cadangan JSON</button>
+ <label>Pulihkan cadangan JSON</label><input id="restore" type="file" accept=".json,application/json">
+ <p class="muted">Memulihkan cadangan akan mengganti transaksi yang ada pada perangkat ini.</p></div>
+ <div class="card"><h3>Status aplikasi</h3><div id="storageStatus" class="muted"></div><p class="muted">Mode offline aktif setelah aplikasi pernah dibuka saat online dan file aplikasi tersimpan oleh browser.</p></div>
+</section>
+<footer>Kas Gereja · Jemaat Mathen Luther Dabe · Mata uang Rupiah</footer>
+</div>
+<script>
+const KEY='mathen_luther_dabe_cash_v1';
+const defaults={in:['Persembahan Minggu','Persepuluhan','Persembahan Khusus','Sumbangan','Lain-lain'],out:['Operasional Gereja','Listrik dan Air','Kegiatan Gereja','Bantuan Sosial','Pemeliharaan','Lain-lain']};
+let data={transactions:[],categories:defaults};
+const $=id=>document.getElementById(id);
+const today=()=>{let d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const month=()=>today().slice(0,7);
+const rupiah=n=>'Rp '+Number(n||0).toLocaleString('id-ID');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function load(){try{let d=JSON.parse(localStorage.getItem(KEY)||'{}');if(Array.isArray(d.transactions))data.transactions=d.transactions;if(d.categories?.in&&d.categories?.out)data.categories=d.categories}catch(e){alert('Data lokal tidak dapat dibaca.')}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(data));$('storageStatus').textContent='Penyimpanan lokal aktif. '+data.transactions.length+' transaksi.';return true}catch(e){alert('Tidak dapat menyimpan. Periksa ruang penyimpanan browser.');return false}}
+function total(type,arr=data.transactions){return arr.filter(t=>t.type===type).reduce((s,t)=>s+Number(t.amount),0)}
+function showPage(p){['dashboard','transactions','reports','backup'].forEach(x=>$(x).classList.toggle('hidden',x!==p));document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.page===p));if(p==='dashboard')renderDashboard();if(p==='transactions')renderList();if(p==='reports')renderReport()}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>showPage(b.dataset.page));
+function renderCategories(selected){let list=data.categories[$('type').value];$('category').innerHTML=list.map(c=>`<option ${c===selected?'selected':''}>${esc(c)}</option>`).join('')}
+$('type').onchange=()=>renderCategories();
+function renderDashboard(){let i=total('in'),o=total('out');$('balance').textContent=rupiah(i-o);$('income').textContent=rupiah(i);$('expense').textContent=rupiah(o);let latest=[...data.transactions].sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).slice(0,6);$('recent').innerHTML=latest.length?latest.map(t=>`<p><b>${esc(t.description)}</b><br><span class="muted">${esc(t.date)} · ${esc(t.category)}</span><br><b class="${t.type==='in'?'green':'red'}">${t.type==='in'?'+':'−'}${rupiah(t.amount)}</b></p>`).join(''):'Belum ada transaksi.'}
+function resetForm(){$('txForm').reset();$('editId').value='';$('date').value=today();$('formTitle').textContent='Tambah transaksi';$('cancelEdit').classList.add('hidden');renderCategories()}
+$('txForm').onsubmit=e=>{e.preventDefault();let amount=Number($('amount').value);if(!Number.isSafeInteger(amount)||amount<=0)return alert('Jumlah Rupiah tidak valid.');let id=Number($('editId').value);let tx={id:id||Date.now(),type:$('type').value,date:$('date').value,category:$('category').value,amount,description:$('description').value.trim()};if(!tx.description)return;let ix=data.transactions.findIndex(t=>t.id===id);if(ix>=0)data.transactions[ix]=tx;else data.transactions.push(tx);if(save()){resetForm();renderList();renderDashboard();alert('Transaksi tersimpan.')}}
+$('cancelEdit').onclick=resetForm;
+function renderList(){let m=$('filterMonth').value;let a=[...data.transactions].filter(t=>!m||t.date.startsWith(m)).sort((x,y)=>y.date.localeCompare(x.date));$('list').innerHTML=a.length?`<table><thead><tr><th>Tanggal / Keterangan</th><th>Jenis</th><th>Jumlah</th><th>Aksi</th></tr></thead><tbody>${a.map(t=>`<tr><td><b>${esc(t.description)}</b><br><span class="muted">${esc(t.date)} · ${esc(t.category)}</span></td><td class="${t.type==='in'?'green':'red'}">${t.type==='in'?'Masuk':'Keluar'}</td><td>${rupiah(t.amount)}</td><td class="actions"><button data-edit="${t.id}">Edit</button><button data-delete="${t.id}">Hapus</button></td></tr>`).join('')}</tbody></table>`:'<p class="muted">Belum ada transaksi.</p>'}
+$('filterMonth').onchange=renderList;
+$('list').onclick=e=>{let ed=e.target.dataset.edit,del=e.target.dataset.delete;if(ed){let t=data.transactions.find(x=>x.id===Number(ed));if(!t)return;$('editId').value=t.id;$('type').value=t.type;renderCategories(t.category);$('date').value=t.date;$('amount').value=t.amount;$('description').value=t.description;$('formTitle').textContent='Edit transaksi';$('cancelEdit').classList.remove('hidden');$('txForm').scrollIntoView({behavior:'smooth'})}if(del){let t=data.transactions.find(x=>x.id===Number(del));if(t&&confirm('Hapus transaksi ini?')){data.transactions=data.transactions.filter(x=>x.id!==t.id);save();renderList();renderDashboard()}}};
+function renderReport(){let m=$('reportMonth').value,a=data.transactions.filter(t=>!m||t.date.startsWith(m)).sort((x,y)=>x.date.localeCompare(y.date)),i=total('in',a),o=total('out',a);$('rIncome').textContent=rupiah(i);$('rExpense').textContent=rupiah(o);$('net').textContent=rupiah(i-o);$('reportList').innerHTML=a.length?`<table><thead><tr><th>Tanggal</th><th>Keterangan</th><th>Jenis</th><th>Jumlah</th></tr></thead><tbody>${a.map(t=>`<tr><td>${esc(t.date)}</td><td>${esc(t.description)}</td><td>${t.type==='in'?'Masuk':'Keluar'}</td><td>${rupiah(t.amount)}</td></tr>`).join('')}</tbody></table>`:'<p class="muted">Tidak ada transaksi pada periode ini.</p>'}
+$('reportMonth').onchange=renderReport;
+function download(name,content,type){let u=URL.createObjectURL(new Blob([content],{type})),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1500)}
+$('downloadBackup').onclick=()=>download('cadangan-kas-mathen-dabe-'+today()+'.json',JSON.stringify({app:'Kas Gereja Jemaat Mathen Luther Dabe',version:1,...data},null,2),'application/json');
+$('restore').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let d=JSON.parse(await f.text());if(!Array.isArray(d.transactions)||!d.transactions.every(t=>['in','out'].includes(t.type)&&Number.isSafeInteger(Number(t.amount))&&t.amount>0&&typeof t.date==='string'&&typeof t.description==='string'))throw Error();if(confirm('Ganti data saat ini dengan '+d.transactions.length+' transaksi dari cadangan?')){data={transactions:d.transactions,categories:d.categories?.in&&d.categories?.out?d.categories:defaults};save();renderDashboard();renderList();renderReport();alert('Cadangan berhasil dipulihkan.')}}catch(err){alert('File cadangan tidak valid.')}e.target.value=''};
+$('csv').onclick=()=>{let m=$('reportMonth').value,a=data.transactions.filter(t=>!m||t.date.startsWith(m));let rows=[['Tanggal','Jenis','Kategori','Keterangan','Pemasukan (Rp)','Pengeluaran (Rp)'],...a.map(t=>[t.date,t.type==='in'?'Pemasukan':'Pengeluaran',t.category,t.description,t.type==='in'?t.amount:'',t.type==='out'?t.amount:''])];download('laporan-kas-'+(m||'semua')+'.csv','\ufeff'+rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n'),'text/csv;charset=utf-8')};
+$('connection').textContent=navigator.onLine?'● Online · Data tersimpan di perangkat':'● Offline · Data tersimpan di perangkat';
+window.addEventListener('online',()=>$('connection').textContent='● Online · Data tersimpan di perangkat');
+window.addEventListener('offline',()=>$('connection').textContent='● Offline · Data tersimpan di perangkat');
+load();$('date').value=today();$('filterMonth').value=month();$('reportMonth').value=month();renderCategories();renderDashboard();renderList();renderReport();save();
+if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
+</script>
+</body></html>
